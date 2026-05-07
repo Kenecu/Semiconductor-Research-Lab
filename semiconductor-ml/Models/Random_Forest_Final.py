@@ -8,17 +8,28 @@ from sklearn.model_selection import LeaveOneOut, cross_val_predict
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 #data
-df = pd.read_excel("semiconductor-ml/Data/semiconductor_data_no_median.xlsx")
+df = pd.read_excel("semiconductor-ml/Data/semiconductor_data.xlsx")
 
 #target
 target = "Energy_Gap (eV)"
 
+categorical_features = ["Crystal_Structure"]
+
+df_encoded = pd.get_dummies(
+    df,
+    columns=categorical_features,
+    drop_first=False
+)
+
 #features
-feature_columns = df.columns.drop(["Material (x=0.3)",target])
+numeric_features = df.columns.drop(["Material (x=0.3)",target,"Crystal_Structure"])
+crystal_columns = [col for col in df_encoded.columns if col.startswith("Crystal_Structure_")]
+
+feature_columns = list(numeric_features) + crystal_columns
 
 #split
-X = df[feature_columns]
-y = df[target]
+X = df_encoded[feature_columns]
+y = df_encoded[target]
 
 model = RandomForestRegressor(
     n_estimators = 500,
@@ -64,6 +75,35 @@ results = pd.DataFrame({
 results_sorted = results.sort_values(by="Error", ascending=False)
 
 print(results_sorted)
+
+# Scatter plot
+plt.figure(figsize=(8, 6))
+
+plt.scatter(y, y_pred)
+
+# Perfect prediction line
+min_value = min(y.min(), y_pred.min())
+max_value = max(y.max(), y_pred.max())
+
+plt.plot([min_value, max_value], [min_value, max_value])
+
+plt.xlabel("Actual Energy Gap (eV)")
+plt.ylabel("Predicted Energy Gap (eV)")
+plt.title("Actual vs Predicted Energy Gap")
+
+# Add metrics text box
+text = f"MAE = {mae:.3f}\nRMSE = {rmse:.3f}\nR² = {r2:.3f}"
+
+plt.text(
+    0.05,
+    0.95,
+    text,
+    transform=plt.gca().transAxes,
+    verticalalignment="top"
+)
+
+plt.show()
+
 
 #plot feature importance
 plt.figure(figsize=(9, 5))
